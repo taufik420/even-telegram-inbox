@@ -85,25 +85,45 @@
       double-tap, no keys in repo/`.ehpk`, demo uses own account only).
 - [ ] **Submit before 23:59 Dubai / 30 Nov 02:59 WIB.**
 
-## Simulator (headless VM) — verification 21 Nov
+## Simulator (headless VM) — ✅ VERIFIED WORKING 21 Nov 2026
 
-**Status: VERIFYING** — `apt-get update && apt-get install -y
-libwebkit2gtk-4.1-0` was still running when this plan was written; the exact
-working command is recorded below once the check completes.
+**Status: WORKS.** The full loop was verified on this VM with a minimal
+SDK smoke test (own code in `/tmp`, NOT the repo): Vite dev server +
+simulator under Xvfb + automation API + a one-line `createStartUpPageContainer`
+("HELLO SIM").
 
-What we know so far (21 Nov):
-- `evenhub` CLI **0.2.0** installs and runs (`evenhub --version` → 0.2.0).
-- `evenhub-simulator` **0.9.3** installs, but its binary would not start:
-  missing shared libraries `libwebkit2gtk-4.1.so.0`, `libsoup-3.0.so.0`,
-  `libjavascriptcoregtk-4.1.so.0` — all provided by the
-  `libwebkit2gtk-4.1-0` system package (Debian/Ubuntu).
-- `xvfb-run` and `Xvfb` are present on this VM (`/usr/bin/xvfb-run`).
-- ⚠️ `/usr` and `/etc` are wiped when the VM is replaced — after any VM
-  swap, re-run: `npm install -g @evenrealities/evenhub-cli@0.2.0
-  @evenrealities/evenhub-simulator@0.9.3` + `apt-get install -y
-  libwebkit2gtk-4.1-0`, then the simulator command below.
+Evidence (21 Nov ~12:45 UTC):
+- `GET /api/ping` → `pong`; `GET /api/console` shows
+  `[EvenAppBridge] Bridge initialized` and `BRIDGE OK: 0` from
+  `createStartUpPageContainer`.
+- `GET /api/screenshot/glasses` → valid PNG **576×288 RGBA** containing the
+  green `HELLO SIM` text (**577 pixels at green=255**).
+- The simulator's X window also shows the text + companion WebView +
+  control buttons (Up / Down / Click / Double Click / Long Press / Menu).
+- `POST /api/input {"action":"click"}` → `{"ok":true}`.
 
-Intended run command (to be confirmed):
+### Setup (run once per VM — `/usr` and `/etc` are wiped on VM replacement)
+
+```bash
+npm install -g @evenrealities/evenhub-cli@0.2.0 @evenrealities/evenhub-simulator@0.9.3
+apt-get update && apt-get install -y libwebkit2gtk-4.1-0
+```
+
+Notes:
+- The simulator binary needs `libwebkit2gtk-4.1.so.0`,
+  `libsoup-3.0.so.0`, `libjavascriptcoregtk-4.1.so.0` — all provided by
+  `libwebkit2gtk-4.1-0`. Without it the binary fails to start.
+- `apt-get update` is VERY slow through this VM's proxy (took ~14 min on
+  21 Nov and was killed at ~435 MB of lists; the install then worked by
+  copying `/var/lib/apt/lists/partial/*` into `/var/lib/apt/lists/`).
+  Allow plenty of time, or reuse the copied-lists trick if it stalls.
+- `xvfb-run` / `Xvfb` are already present. `libgl1-mesa-dri` (llvmpipe /
+  swrast software rendering) is installed; the `libEGL warning: DRI3
+  error` in the simulator log is harmless — rendering falls back to
+  software GL and works.
+
+### Run (exact working commands)
+
 ```bash
 # Terminal 1 — dev server (from repo root)
 npm run dev
@@ -113,6 +133,16 @@ xvfb-run -a evenhub-simulator --automation-port 9898 http://localhost:5173
 curl -s http://localhost:9898/api/ping
 curl -s http://localhost:9898/api/screenshot/glasses -o glasses.png
 ```
+
+Gotchas found during verification:
+- A plain HTML page (no SDK) renders a **blank** glasses display — the
+  canvas only shows SDK containers. Test with a real
+  `createStartUpPageContainer` call, not a static page.
+- The screenshot PNG uses row filters — decode it with a real PNG decoder
+  (or unfilter in code). A naive raw-byte read reports "0 lit pixels"
+  even when the text is there.
+- If the window looks wrong after an edit, restart the simulator before
+  assuming a bug (hot-reload is reported unreliable).
 
 ## Submit checklist
 
