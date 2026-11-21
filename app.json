@@ -1,0 +1,25 @@
+{
+  "package_id": "com.taufik52.eventelegraminbox",
+  "edition": "202601",
+  "name": "Telegram Inbox",
+  "version": "0.1.0",
+  "min_app_version": "2.0.0",
+  "min_sdk_version": "0.0.14",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "g2-microphone",
+      "desc": "Capture audio from the glasses mic for live transcription."
+    },
+    {
+      "name": "network",
+      "desc": "Reach Telegram Bot API for channel digests and AI draft approvals.",
+      "whitelist": [
+        "https://api.telegram.org"
+      ]
+    }
+  ],
+  "supported_languages": [
+    "en"
+  ]
+}
